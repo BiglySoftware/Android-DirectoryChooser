@@ -187,6 +187,19 @@ public class DirectoryChooserFragment extends DialogFragment {
                 }
             }
         });
+        
+        
+        mListDirectories.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                mBtnCancel.setEnabled(isValidFile(mFilesInDir[position]));
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
 
         mBtnNavUp.setOnClickListener(new OnClickListener() {
 
@@ -207,9 +220,10 @@ public class DirectoryChooserFragment extends DialogFragment {
             }
         });
 
-        if (!getShowsDialog()) {
-            mBtnCreateFolder.setVisibility(View.GONE);
-        }
+// I don't understand why one would hide the create folder button when !getShowsDialog
+//        if (!getShowsDialog()) {
+//            mBtnCreateFolder.setVisibility(View.GONE);
+//        }
 
         adjustResourceLightness();
 
@@ -433,7 +447,9 @@ public class DirectoryChooserFragment extends DialogFragment {
     private void refreshButtonState() {
         final Activity activity = getActivity();
         if (activity != null && mSelectedDir != null) {
-            mBtnConfirm.setEnabled(isValidFile(mSelectedDir));
+            mBtnConfirm.setEnabled(isValidFile(mSelectedDir)  &&
+                (mConfig.allowReadOnlyDirectory() || mSelectedDir.canWrite()));
+            mBtnCreateFolder.setVisibility(isValidFile(mSelectedDir) && mSelectedDir.canWrite() ? View.GONE : View.VISIBLE);
             getActivity().invalidateOptionsMenu();
         }
     }
@@ -524,8 +540,7 @@ public class DirectoryChooserFragment extends DialogFragment {
      * Returns true if the selected file or directory would be valid selection.
      */
     private boolean isValidFile(final File file) {
-        return (file != null && file.isDirectory() && file.canRead() &&
-                (mConfig.allowReadOnlyDirectory() || file.canWrite()));
+        return (file != null && file.isDirectory() && file.canRead());
     }
 
     @Nullable
