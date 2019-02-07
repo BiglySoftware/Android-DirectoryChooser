@@ -12,8 +12,8 @@ buildscript {
 }
 
 dependencies {
-    implementation "com.android.support:appcompat-v7:$versions.support"
-    implementation "com.android.support:support-annotations:$versions.support"
+    implementation "androidx.appcompat:appcompat:$versions.appcompat"
+    implementation "androidx.annotation:annotation:$versions.annotation"
     implementation 'com.github.guardian:Option:e933c3a31d'
     implementation 'com.github.frankiesardo:auto-parcel:0.3.1'
     implementation             "com.google.auto.value:auto-value-annotations:1.6.2"
