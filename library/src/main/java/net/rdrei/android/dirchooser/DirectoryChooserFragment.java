@@ -449,7 +449,9 @@ public class DirectoryChooserFragment extends DialogFragment {
         if (activity != null && mSelectedDir != null) {
             mBtnConfirm.setEnabled(isValidFile(mSelectedDir)  &&
                 (mConfig.allowReadOnlyDirectory() || mSelectedDir.canWrite()));
-            mBtnCreateFolder.setVisibility(isValidFile(mSelectedDir) && mSelectedDir.canWrite() ? View.GONE : View.VISIBLE);
+            mBtnCreateFolder.setVisibility(
+                isValidFile(mSelectedDir) && mSelectedDir.canWrite() ? View.VISIBLE
+                    : View.GONE);
             getActivity().invalidateOptionsMenu();
         }
     }
