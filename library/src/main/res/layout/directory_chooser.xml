@@ -1,103 +1,129 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ This program is free software; you can redistribute it and/or
+  ~ modify it under the terms of the GNU General Public License
+  ~ as published by the Free Software Foundation; either version 2
+  ~ of the License, or (at your option) any later version.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with this program; if not, write to the Free Software
+  ~ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
+  -->
+
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-                xmlns:tools="http://schemas.android.com/tools"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent">
-
-    <LinearLayout
-            android:id="@+id/footer"
-            style="@android:style/ButtonBar"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_alignParentBottom="true"
-            android:orientation="horizontal">
-
-        <Button
-                style="?android:attr/buttonBarButtonStyle"
-                android:id="@+id/btnConfirm"
-                android:layout_width="0px"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/confirm_label"/>
-
-        <Button
-                style="?android:attr/buttonBarButtonStyle"
-                android:id="@+id/btnCancel"
-                android:layout_width="0px"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/cancel_label"
-                tools:ignore="ButtonOrder"/>
-    </LinearLayout>
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  xmlns:app="http://schemas.android.com/apk/res-auto"
+  xmlns:tools="http://schemas.android.com/tools">
 
     <RelativeLayout
-            android:id="@+id/directoryInfo"
+        android:id="@+id/footer"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_alignParentBottom="true" >
+
+        <View
             android:layout_width="match_parent"
+            android:layout_height="1dip"
+            android:layout_alignParentTop="true"
+            android:background="?android:attr/dividerVertical" />
+
+        <Button
+            android:id="@+id/btnCancel"
+            style="@style/Widget.MaterialComponents.Button.TextButton.Dialog"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_alignParentTop="true">
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentTop="true"
+            android:layout_toLeftOf="@id/btnConfirm"
+            android:text="@string/cancel_label" />
+
+        <Button
+            android:id="@+id/btnConfirm"
+            style="@style/Widget.MaterialComponents.Button.TextButton.Dialog"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentTop="true"
+            android:text="@string/confirm_label" />
+    </RelativeLayout>
+
+    <RelativeLayout
+        android:id="@+id/directoryInfo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true" >
 
         <ImageButton
-                android:id="@+id/btnNavUp"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:layout_alignParentLeft="true"
-                android:layout_alignParentTop="true"
-                android:contentDescription="@string/up_label"
-                android:background="@drawable/borderless_button"
-                android:src="@drawable/navigation_up"/>
+            style="?android:borderlessButtonStyle"
+            android:id="@+id/btnNavUp"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentTop="true"
+            android:contentDescription="@string/up_label"
+            app:tint="?colorPrimary"
+            android:src="@drawable/ic_arrow_upward_black_24dp" />
 
         <TextView
-                android:id="@+id/txtvSelectedFolderLabel"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentTop="true"
-                android:layout_marginLeft="8dp"
-                android:layout_marginRight="8dp"
-                android:layout_marginTop="8dp"
-                android:layout_toRightOf="@id/btnNavUp"
-                android:text="@string/selected_folder_label"
-                android:textStyle="bold">
+            android:id="@+id/txtvSelectedFolderLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_marginLeft="8dp"
+            android:layout_marginRight="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_toRightOf="@id/btnNavUp"
+            android:text="@string/selected_folder_label"
+            android:textStyle="bold" >
         </TextView>
 
         <TextView
-                android:id="@+id/txtvSelectedFolder"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_below="@id/txtvSelectedFolderLabel"
-                android:layout_toRightOf="@id/btnNavUp"
-                android:layout_toLeftOf="@+id/btnCreateFolder"
-                android:ellipsize="start"
-                android:scrollHorizontally="true"
-                android:singleLine="true"
-                android:layout_marginLeft="8dp"
-                android:layout_marginTop="8dp"
-                android:layout_marginBottom="8dp"
-                />
+            android:id="@+id/txtvSelectedFolder"
+            android:layout_below="@id/txtvSelectedFolderLabel"
+            android:layout_toRightOf="@id/btnNavUp"
+            android:layout_toLeftOf="@+id/btnCreateFolder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="start"
+            android:scrollHorizontally="true"
+            android:singleLine="true"
+            android:layout_marginLeft="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            />
 
         <ImageButton
+                style="?android:borderlessButtonStyle"
                 android:id="@+id/btnCreateFolder"
                 android:layout_width="60dp"
                 android:layout_height="60dp"
                 android:layout_alignParentRight="true"
                 android:layout_alignParentTop="true"
                 android:contentDescription="@string/create_folder_label"
-                android:background="@drawable/borderless_button"
-                android:src="@drawable/ic_action_create"
+                app:tint="?colorPrimary"
+                android:src="@drawable/ic_add_black_24dp"
                 />
 
         <View
-                android:id="@+id/divider"
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_below="@id/btnNavUp"
-                android:background="@color/bright_blue"/>
+            android:id="@+id/divider"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_below="@id/btnNavUp"
+            android:background="?colorPrimary" />
     </RelativeLayout>
 
     <ListView
-            android:id="@+id/directoryList"
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_above="@id/footer"
-            android:layout_below="@id/directoryInfo"/>
+        android:id="@+id/directoryList"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_above="@id/footer"
+        android:layout_below="@id/directoryInfo" />
 
 </RelativeLayout>

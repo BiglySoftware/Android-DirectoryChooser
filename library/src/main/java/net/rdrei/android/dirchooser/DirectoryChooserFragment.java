@@ -2,18 +2,16 @@ package net.rdrei.android.dirchooser;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.DialogFragment;
 import android.app.Fragment;
 import android.content.DialogInterface;
-import android.content.res.Resources;
-import android.content.res.TypedArray;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.FileObserver;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
@@ -34,6 +32,8 @@ import android.widget.ImageButton;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -220,8 +220,6 @@ public class DirectoryChooserFragment extends DialogFragment {
 //            mBtnCreateFolder.setVisibility(View.GONE);
 //        }
 
-        adjustResourceLightness();
-
         mFilenames = new ArrayList<>();
         mListDirectoriesAdapter = new ArrayAdapter<>(getActivity(),
                 android.R.layout.simple_list_item_1, mFilenames);
@@ -237,30 +235,6 @@ public class DirectoryChooserFragment extends DialogFragment {
         changeDirectory(initialDir);
 
         return view;
-    }
-
-    private void adjustResourceLightness() {
-        // change up button to light version if using dark theme
-        int color = 0xFFFFFF;
-        final Resources.Theme theme = getActivity().getTheme();
-
-        if (theme != null) {
-            final TypedArray backgroundAttributes = theme.obtainStyledAttributes(
-                    new int[]{android.R.attr.colorBackground});
-
-            if (backgroundAttributes != null) {
-                color = backgroundAttributes.getColor(0, 0xFFFFFF);
-                backgroundAttributes.recycle();
-            }
-        }
-
-        // convert to greyscale and check if < 128
-        if (color != 0xFFFFFF && 0.21 * Color.red(color) +
-                0.72 * Color.green(color) +
-                0.07 * Color.blue(color) < 128) {
-            mBtnNavUp.setImageResource(R.drawable.navigation_up_light);
-            mBtnCreateFolder.setImageResource(R.drawable.ic_action_create_light);
-        }
     }
 
     @Override
@@ -337,7 +311,7 @@ public class DirectoryChooserFragment extends DialogFragment {
         editText.setText(mNewDirectoryName);
         msgView.setText(getString(R.string.create_folder_msg, mNewDirectoryName));
 
-        final AlertDialog alertDialog = new AlertDialog.Builder(getActivity())
+        final AlertDialog alertDialog = new MaterialAlertDialogBuilder(getActivity())
                 .setTitle(R.string.create_folder_label)
                 .setView(dialogView)
                 .setNegativeButton(R.string.cancel_label,
