@@ -14,10 +14,8 @@ buildscript {
 dependencies {
     implementation "androidx.appcompat:appcompat:$versions.appcompat"
     implementation "androidx.annotation:annotation:$versions.annotation"
-    implementation 'com.github.guardian:Option:e933c3a31d'
     implementation 'com.github.frankiesardo:auto-parcel:0.3.1'
-    implementation             "com.google.auto.value:auto-value-annotations:1.6.2"
-    annotationProcessor "com.google.auto.value:auto-value:1.6.2"
+
     annotationProcessor 'com.github.frankiesardo:auto-parcel-processor:0.3.1'
 
 //    testCompile 'junit:junit:4.12'
@@ -44,6 +42,8 @@ android {
     sourceCompatibility JavaVersion.VERSION_1_7
     targetCompatibility JavaVersion.VERSION_1_7
   }
+    
+    sourceSets.test.java.srcDirs = []
 }
 
 checkstyle {

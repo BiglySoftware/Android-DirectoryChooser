@@ -35,9 +35,6 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.gu.option.Option;
-import com.gu.option.UnitFunction;
-
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -58,7 +55,7 @@ public class DirectoryChooserFragment extends DialogFragment {
     private String mNewDirectoryName;
     private String mInitialDirectory;
 
-    private Option<OnFragmentInteractionListener> mListener = Option.none();
+    private OnFragmentInteractionListener mListener = null;
 
     private Button mBtnConfirm;
     private Button mBtnCancel;
@@ -166,12 +163,10 @@ public class DirectoryChooserFragment extends DialogFragment {
 
             @Override
             public void onClick(final View v) {
-                mListener.foreach(new UnitFunction<OnFragmentInteractionListener>() {
-                    @Override
-                    public void apply(final OnFragmentInteractionListener listener) {
-                        listener.onCancelChooser();
-                    }
-                });
+                if (mListener == null) {
+                    return;
+                }
+                mListener.onCancelChooser();
             }
         });
 
@@ -273,11 +268,11 @@ public class DirectoryChooserFragment extends DialogFragment {
         super.onAttach(activity);
 
         if (activity instanceof OnFragmentInteractionListener) {
-            mListener = Option.some((OnFragmentInteractionListener) activity);
+            mListener = (OnFragmentInteractionListener) activity;
         } else {
             Fragment owner = getTargetFragment();
             if (owner instanceof OnFragmentInteractionListener) {
-                mListener = Option.some((OnFragmentInteractionListener) owner);
+                mListener = (OnFragmentInteractionListener) owner;
             }
         }
     }
@@ -494,21 +489,14 @@ public class DirectoryChooserFragment extends DialogFragment {
      * selected folder can also be null.
      */
     private void returnSelectedFolder() {
+        if (mListener == null) {
+            return;
+        }
         if (mSelectedDir != null) {
             debug("Returning %s as result", mSelectedDir.getAbsolutePath());
-            mListener.foreach(new UnitFunction<OnFragmentInteractionListener>() {
-                @Override
-                public void apply(final OnFragmentInteractionListener f) {
-                    f.onSelectDirectory(mSelectedDir.getAbsolutePath());
-                }
-            });
+            mListener.onSelectDirectory(mSelectedDir.getAbsolutePath());
         } else {
-            mListener.foreach(new UnitFunction<OnFragmentInteractionListener>() {
-                @Override
-                public void apply(final OnFragmentInteractionListener f) {
-                    f.onCancelChooser();
-                }
-            });
+            mListener.onCancelChooser();
         }
 
     }
@@ -547,11 +535,11 @@ public class DirectoryChooserFragment extends DialogFragment {
 
     @Nullable
     public OnFragmentInteractionListener getDirectoryChooserListener() {
-        return mListener.get();
+        return mListener;
     }
 
     public void setDirectoryChooserListener(@Nullable final OnFragmentInteractionListener listener) {
-        mListener = Option.option(listener);
+        mListener = listener;
     }
 
     /**
