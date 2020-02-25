@@ -12,9 +12,9 @@ buildscript {
 }
 
 dependencies {
-    implementation "androidx.appcompat:appcompat:$versions.appcompat"
-    implementation "androidx.annotation:annotation:$versions.annotation"
-    implementation "com.google.android.material:material:$versions.material"
+    implementation "androidx.appcompat:appcompat:$appcompatVersion"
+    implementation "androidx.annotation:annotation:${annotationVersion}"
+    implementation "com.google.android.material:material:${materialVersion}"
     implementation 'com.github.frankiesardo:auto-parcel:0.3.1'
 
     annotationProcessor 'com.github.frankiesardo:auto-parcel-processor:0.3.1'
