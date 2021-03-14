@@ -8,38 +8,22 @@ import android.content.DialogInterface;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.FileObserver;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
-
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.View.OnClickListener;
-import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.AdapterView.OnItemClickListener;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ImageButton;
-import android.widget.ListView;
-import android.widget.TextView;
-import android.widget.Toast;
+import android.view.*;
+import android.widget.*;
+
+import androidx.annotation.*;
+import androidx.appcompat.app.AlertDialog;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
+import net.rdrei.android.dirchooser.ThreadUtils.RunnableWithObject;
+
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 /**
  * Activities that contain this fragment must implement the
@@ -48,31 +32,42 @@ import java.util.List;
  * Use the {@link DirectoryChooserFragment#newInstance} factory method to
  * create an instance of this fragment.
  */
+@SuppressWarnings({
+    "ConfusingElseBranch",
+    "unused"
+})
 public class DirectoryChooserFragment extends DialogFragment {
     public static final String KEY_CURRENT_DIRECTORY = "CURRENT_DIRECTORY";
     private static final String ARG_CONFIG = "CONFIG";
     private static final String TAG = DirectoryChooserFragment.class.getSimpleName();
-    private String mNewDirectoryName;
+
+    public static final int FILE_OBSERVER_MASK =
+        FileObserver.CREATE | FileObserver.DELETE | FileObserver.MOVED_FROM
+            | FileObserver.MOVED_TO;
+
+    String mNewDirectoryName;
     private String mInitialDirectory;
 
-    private OnFragmentInteractionListener mListener = null;
+    OnFragmentInteractionListener mListener = null;
 
     private Button mBtnConfirm;
-    private Button mBtnCancel;
+    Button mBtnCancel;
     private ImageButton mBtnNavUp;
     private ImageButton mBtnCreateFolder;
     private TextView mTxtvSelectedFolder;
     private ListView mListDirectories;
 
     private ArrayAdapter<String> mListDirectoriesAdapter;
-    private List<String> mFilenames;
+    private final List<String> mFilenames = new ArrayList<>();
     /**
      * The directory that is currently being shown.
      */
-    private File mSelectedDir;
-    private File[] mFilesInDir;
-    private FileObserver mFileObserver;
+    File mSelectedDir;
+    File[] mFilesInDir;
+    FileObserver mFileObserver;
     private DirectoryChooserConfig mConfig;
+
+    private boolean changingDirectory;
 
     public DirectoryChooserFragment() {
         // Required empty public constructor
@@ -149,45 +144,33 @@ public class DirectoryChooserFragment extends DialogFragment {
         mTxtvSelectedFolder = (TextView) view.findViewById(R.id.txtvSelectedFolder);
         mListDirectories = (ListView) view.findViewById(R.id.directoryList);
 
-        mBtnConfirm.setOnClickListener(new OnClickListener() {
-
-            @Override
-            public void onClick(final View v) {
-                if (isValidFile(mSelectedDir)) {
-                    returnSelectedFolder();
-                }
+        mBtnConfirm.setOnClickListener(v -> isValidFile(mSelectedDir, valid -> {
+            if (valid) {
+                returnSelectedFolder();
             }
+        }));
+
+        mBtnCancel.setOnClickListener(v -> {
+            if (mListener == null) {
+                return;
+            }
+            mListener.onCancelChooser();
         });
 
-        mBtnCancel.setOnClickListener(new OnClickListener() {
-
-            @Override
-            public void onClick(final View v) {
-                if (mListener == null) {
-                    return;
-                }
-                mListener.onCancelChooser();
-            }
-        });
-
-        mListDirectories.setOnItemClickListener(new OnItemClickListener() {
-
-            @Override
-            public void onItemClick(final AdapterView<?> parent, final View view,
-                    final int position, final long id) {
+        mListDirectories.setOnItemClickListener(
+            (parent, v, position, id) -> {
                 debug("Selected index: %d", position);
                 if (mFilesInDir != null && position >= 0
                         && position < mFilesInDir.length) {
                     changeDirectory(mFilesInDir[position]);
                 }
-            }
-        });
+            });
         
         
         mListDirectories.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                mBtnCancel.setEnabled(isValidFile(mFilesInDir[position]));
+                isValidFile(mFilesInDir[position], valid -> mBtnCancel.setEnabled(valid));
             }
 
             @Override
@@ -196,43 +179,35 @@ public class DirectoryChooserFragment extends DialogFragment {
             }
         });
 
-        mBtnNavUp.setOnClickListener(new OnClickListener() {
-
-            @Override
-            public void onClick(final View v) {
-                final File parent;
-                if (mSelectedDir != null
-                        && (parent = mSelectedDir.getParentFile()) != null) {
-                    changeDirectory(parent);
-                }
+        mBtnNavUp.setOnClickListener(v -> {
+            final File parent;
+            if (mSelectedDir != null
+                    && (parent = mSelectedDir.getParentFile()) != null) {
+                changeDirectory(parent);
             }
         });
 
-        mBtnCreateFolder.setOnClickListener(new OnClickListener() {
-            @Override
-            public void onClick(final View v) {
-                openNewFolderDialog();
-            }
-        });
+        mBtnCreateFolder.setOnClickListener(v -> openNewFolderDialog());
 
 // I don't understand why one would hide the create folder button when !getShowsDialog
 //        if (!getShowsDialog()) {
 //            mBtnCreateFolder.setVisibility(View.GONE);
 //        }
 
-        mFilenames = new ArrayList<>();
         mListDirectoriesAdapter = new ArrayAdapter<>(getActivity(),
                 android.R.layout.simple_list_item_1, mFilenames);
         mListDirectories.setAdapter(mListDirectoriesAdapter);
 
-        final File initialDir;
-        if (!TextUtils.isEmpty(mInitialDirectory) && isValidFile(new File(mInitialDirectory))) {
-            initialDir = new File(mInitialDirectory);
-        } else {
-            initialDir = Environment.getExternalStorageDirectory();
-        }
+        ThreadUtils.runOffUIThread(() -> {
+            final File initialDir;
+            if (!TextUtils.isEmpty(mInitialDirectory) && isValidFile(new File(mInitialDirectory))) {
+                initialDir = new File(mInitialDirectory);
+            } else {
+                initialDir = Environment.getExternalStorageDirectory();
+            }
 
-        changeDirectory(initialDir);
+            changeDirectory(initialDir);
+        }, "initialDir");
 
         return view;
     }
@@ -283,7 +258,11 @@ public class DirectoryChooserFragment extends DialogFragment {
             return;
         }
 
-        menuItem.setVisible(isValidFile(mSelectedDir) && mNewDirectoryName != null);
+        menuItem.setVisible(false);
+        if (changingDirectory) {
+            return;
+        }
+        isValidFile(mSelectedDir, valid -> menuItem.setVisible(valid && mNewDirectoryName != null));
     }
 
     @Override
@@ -314,25 +293,16 @@ public class DirectoryChooserFragment extends DialogFragment {
         final AlertDialog alertDialog = new MaterialAlertDialogBuilder(getActivity())
                 .setTitle(R.string.create_folder_label)
                 .setView(dialogView)
-                .setNegativeButton(R.string.cancel_label,
-                        new DialogInterface.OnClickListener() {
-
-                            @Override
-                            public void onClick(final DialogInterface dialog, final int which) {
-                                dialog.dismiss();
-                            }
-                        })
-                .setPositiveButton(R.string.confirm_label,
-                        new DialogInterface.OnClickListener() {
-
-                            @Override
-                            public void onClick(final DialogInterface dialog, final int which) {
-                                dialog.dismiss();
-                                mNewDirectoryName = editText.getText().toString();
-                                final int msg = createFolder();
-                                Toast.makeText(getActivity(), msg, Toast.LENGTH_SHORT).show();
-                            }
-                        })
+                .setNegativeButton(R.string.cancel_label, (dialog, which) -> dialog.dismiss())
+                .setPositiveButton(R.string.confirm_label, (dialog, which) -> {
+                    dialog.dismiss();
+                    mNewDirectoryName = editText.getText().toString();
+                    ThreadUtils.runOffUIThread(() -> {
+                        final int msg = createFolder();
+                        ThreadUtils.runOnUIThread(() -> 
+                            Toast.makeText(getActivity(), msg, Toast.LENGTH_SHORT).show());
+                    }, "createFolder");
+                })
                 .show();
 
         alertDialog.getButton(DialogInterface.BUTTON_POSITIVE).setEnabled(editText.getText().length() != 0);
@@ -360,8 +330,10 @@ public class DirectoryChooserFragment extends DialogFragment {
                 ? View.VISIBLE : View.GONE);
     }
 
-    private static void debug(final String message, final Object... args) {
-        Log.d(TAG, String.format(message, args));
+    static void debug(final String message, final Object... args) {
+        if (BuildConfig.DEBUG) {
+            Log.d(TAG, String.format(message, args));
+        }
     }
 
     /**
@@ -371,64 +343,112 @@ public class DirectoryChooserFragment extends DialogFragment {
      *            non-null and a directory, otherwise the displayed directory
      *            will not be changed
      */
-    private void changeDirectory(final File dir) {
+    void changeDirectory(final File dir) {
+        changingDirectory = true;
+        ThreadUtils.runOnUIThread(() -> {
+            disableButtonState();
+            ThreadUtils.runOffUIThread(() -> changeDirectoryOffUIThread(dir), 
+                "changeDirectory");
+        });
+    }
+
+    @WorkerThread
+    private void changeDirectoryOffUIThread(File dir) {
         if (dir == null) {
             debug("Could not change folder: dir was null");
         } else if (!dir.isDirectory()) {
             debug("Could not change folder: dir is no directory");
         } else {
-            final File[] contents = dir.listFiles();
+            File[] contents = dir.listFiles();
             if (contents != null) {
-                int numDirectories = 0;
-                for (final File f : contents) {
-                    if (f.isDirectory()) {
-                        numDirectories++;
+                synchronized (DirectoryChooserFragment.this) {
+                    int numDirectories = 0;
+                    for (final File f : contents) {
+                        if (f.isDirectory()) {
+                            numDirectories++;
+                        }
                     }
-                }
-                mFilesInDir = new File[numDirectories];
-                mFilenames.clear();
-                for (int i = 0, counter = 0; i < numDirectories; counter++) {
-                    if (contents[counter].isDirectory()) {
-                        mFilesInDir[i] = contents[counter];
-                        mFilenames.add(contents[counter].getName());
-                        i++;
+                    final File[] filesInDir = new File[numDirectories];
+                    List<String> filenames = new ArrayList<>();
+                    for (int i = 0, counter = 0; i < numDirectories; counter++) {
+                        if (contents[counter].isDirectory()) {
+                            filesInDir[i] = contents[counter];
+                            filenames.add(contents[counter].getName());
+                            i++;
+                        }
                     }
+                    Arrays.sort(filesInDir);
+                    Collections.sort(filenames);
+                    String absolutePath = dir.getAbsolutePath();
+                    if (!dir.equals(mSelectedDir)) {
+                        if (mFileObserver != null) {
+                            mFileObserver.stopWatching();
+                        }
+                        mFileObserver = createFileObserver(absolutePath);
+                        mFileObserver.startWatching();
+                    }
+
+                    Activity activity = getActivity();
+                    if (activity == null || activity.isFinishing()) {
+                        return;
+                    }
+                    activity.runOnUiThread(() -> {
+                        Activity curActivity = getActivity();
+                        if (curActivity == null || curActivity.isFinishing()) {
+                            return;
+                        }
+
+                        mFilesInDir = filesInDir;
+                        mFilenames.clear();
+                        mFilenames.addAll(filenames);
+                        mSelectedDir = dir;
+                        mTxtvSelectedFolder.setText(absolutePath);
+                        mListDirectoriesAdapter.notifyDataSetChanged();
+                        debug("Changed directory to %s", absolutePath);
+                    });
                 }
-                Arrays.sort(mFilesInDir);
-                Collections.sort(mFilenames);
-                mSelectedDir = dir;
-                mTxtvSelectedFolder.setText(dir.getAbsolutePath());
-                mListDirectoriesAdapter.notifyDataSetChanged();
-                mFileObserver = createFileObserver(dir.getAbsolutePath());
-                mFileObserver.startWatching();
-                debug("Changed directory to %s", dir.getAbsolutePath());
             } else {
                 debug("Could not change folder: contents of dir were null");
             }
         }
-        refreshButtonState();
+        refreshButtonState(valid -> {
+            changingDirectory = false;
+            Activity activity = getActivity();
+            if (activity == null || activity.isFinishing()) {
+                return;
+            }
+            mBtnConfirm.setEnabled(valid &&
+                (mConfig.allowReadOnlyDirectory() || mSelectedDir.canWrite()));
+            mBtnCreateFolder.setEnabled(true);
+            mBtnCreateFolder.setVisibility(
+                valid && mSelectedDir.canWrite() ? View.VISIBLE : View.GONE);
+            activity.invalidateOptionsMenu();
+        });
     }
 
     /**
      * Changes the state of the buttons depending on the currently selected file
      * or folder.
      */
-    private void refreshButtonState() {
-        final Activity activity = getActivity();
-        if (activity != null && mSelectedDir != null) {
-            mBtnConfirm.setEnabled(isValidFile(mSelectedDir)  &&
-                (mConfig.allowReadOnlyDirectory() || mSelectedDir.canWrite()));
-            mBtnCreateFolder.setVisibility(
-                isValidFile(mSelectedDir) && mSelectedDir.canWrite() ? View.VISIBLE
-                    : View.GONE);
-            getActivity().invalidateOptionsMenu();
+    @WorkerThread
+    private void refreshButtonState(@UiThread RunnableWithObject<Boolean> runOnComplete) {
+        if (mSelectedDir == null) {
+            ThreadUtils.runOnUIThread(() -> runOnComplete.run(false));
+            return;
         }
+        isValidFile(mSelectedDir, runOnComplete);
+    }
+    
+    @UiThread
+    private void disableButtonState() {
+        mBtnConfirm.setEnabled(false);
+        mBtnCreateFolder.setEnabled(false);
     }
 
     /**
      * Refresh the contents of the directory that is currently shown.
      */
-    private void refreshDirectory() {
+    void refreshDirectory() {
         if (mSelectedDir != null) {
             changeDirectory(mSelectedDir);
         }
@@ -437,23 +457,18 @@ public class DirectoryChooserFragment extends DialogFragment {
     /**
      * Sets up a FileObserver to watch the current directory.
      */
+    @WorkerThread
     private FileObserver createFileObserver(final String path) {
-        return new FileObserver(path, FileObserver.CREATE | FileObserver.DELETE
-                | FileObserver.MOVED_FROM | FileObserver.MOVED_TO) {
+        return new FileObserver(path, FILE_OBSERVER_MASK) {
 
             @Override
             public void onEvent(final int event, final String path) {
-                debug("FileObserver received event %d", event);
-                final Activity activity = getActivity();
-
-                if (activity != null) {
-                    activity.runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            refreshDirectory();
-                        }
-                    });
+                if ((event & FILE_OBSERVER_MASK) == 0) {
+                    debug("FileObserver received ignored event %d for %s", event, path);
+                    return;
                 }
+                debug("FileObserver received event %d", event);
+                refreshDirectory();
             }
         };
     }
@@ -462,7 +477,7 @@ public class DirectoryChooserFragment extends DialogFragment {
      * Returns the selected folder as a result to the activity the fragment's attached to. The
      * selected folder can also be null.
      */
-    private void returnSelectedFolder() {
+    void returnSelectedFolder() {
         if (mListener == null) {
             return;
         }
@@ -479,7 +494,7 @@ public class DirectoryChooserFragment extends DialogFragment {
      * Creates a new folder in the current directory with the name
      * CREATE_DIRECTORY_NAME.
      */
-    private int createFolder() {
+    int createFolder() {
         if (mNewDirectoryName != null && mSelectedDir != null
                 && mSelectedDir.canWrite()) {
             final File newDir = new File(mSelectedDir, mNewDirectoryName);
@@ -501,9 +516,22 @@ public class DirectoryChooserFragment extends DialogFragment {
     }
 
     /**
+     * Moves off UI Thread, checks if file is valid, and reports results
+     */
+    @AnyThread
+    static void isValidFile(final File file, @NonNull final RunnableWithObject<Boolean> result) {
+        ThreadUtils.runOffUIThread(() -> {
+            boolean isValidFile = isValidFile(file);
+            ThreadUtils.runOnUIThread(result, isValidFile);
+        }, "isValidFile");
+    }
+
+
+    /**
      * Returns true if the selected file or directory would be valid selection.
      */
-    private boolean isValidFile(final File file) {
+    @WorkerThread
+    static boolean isValidFile(final File file) {
         return (file != null && file.isDirectory() && file.canRead());
     }
 
