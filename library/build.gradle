@@ -24,7 +24,8 @@ dependencies {
 }
 
 android {
-    compileSdkVersion rootProject.ext.compileSdkVersion
+    namespace 'net.rdrei.android.dirchooser'
+    compileSdk rootProject.ext.compileSdkVersion
 
     defaultConfig {
     minSdkVersion 14
