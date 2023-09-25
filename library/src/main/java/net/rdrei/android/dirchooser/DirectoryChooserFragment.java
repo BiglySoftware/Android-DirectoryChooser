@@ -354,6 +354,8 @@ public class DirectoryChooserFragment extends DialogFragment {
 
     @WorkerThread
     private void changeDirectoryOffUIThread(File dir) {
+        boolean doRefreshButtonState = true;
+
         if (dir == null) {
             debug("Could not change folder: dir was null");
         } else if (!dir.isDirectory()) {
@@ -405,25 +407,17 @@ public class DirectoryChooserFragment extends DialogFragment {
                         mTxtvSelectedFolder.setText(absolutePath);
                         mListDirectoriesAdapter.notifyDataSetChanged();
                         debug("Changed directory to %s", absolutePath);
+
+                        refreshButtonState(this::onRefreshButtonState);
                     });
                 }
             } else {
                 debug("Could not change folder: contents of dir were null");
             }
         }
-        refreshButtonState(valid -> {
-            changingDirectory = false;
-            Activity activity = getActivity();
-            if (activity == null || activity.isFinishing()) {
-                return;
-            }
-            mBtnConfirm.setEnabled(valid &&
-                (mConfig.allowReadOnlyDirectory() || mSelectedDir.canWrite()));
-            mBtnCreateFolder.setEnabled(true);
-            mBtnCreateFolder.setVisibility(
-                valid && mSelectedDir.canWrite() ? View.VISIBLE : View.GONE);
-            activity.invalidateOptionsMenu();
-        });
+        if (doRefreshButtonState) {
+            refreshButtonState(this::onRefreshButtonState);
+        }
     }
 
     /**
@@ -566,4 +560,16 @@ public class DirectoryChooserFragment extends DialogFragment {
         void onCancelChooser();
     }
 
+    private void onRefreshButtonState(Boolean valid) {
+        changingDirectory = false;
+        Activity activity = getActivity();
+        if (activity == null || activity.isFinishing()) {
+            return;
+        }
+        mBtnConfirm.setEnabled(valid && (mConfig.allowReadOnlyDirectory() || mSelectedDir.canWrite()));
+        mBtnCreateFolder.setEnabled(true);
+        mBtnCreateFolder.setVisibility(
+            valid && mSelectedDir.canWrite() ? View.VISIBLE : View.GONE);
+        activity.invalidateOptionsMenu();
+    }
 }
